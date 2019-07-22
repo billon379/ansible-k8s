@@ -1,0 +1,16 @@
+---
+#this playbook will install kubernetes node images on centos7
+#1.copy k8s_node_images.sh to /var/tmp/k8s_node_images.sh
+- name: 1.copy k8s_node_images.sh to /var/tmp/k8s_node_images.sh
+  template:
+    src: k8s_node_images.sh.j2
+    dest: /var/tmp/k8s_node_images.sh
+    mode: u+x,g+x,o+x
+
+#2.download kubernetes node images
+- name: 2.download kubernetes node images
+  shell: /var/tmp/k8s_node_images.sh
+
+#3.join cluster
+- name: 3.join cluster
+  shell: "{{ hostvars[groups['k8s_master'][0]].cluster_join_command.stdout }}"

@@ -1,0 +1,37 @@
+---
+#this playbook will install docker-ce on centos7
+#1.install docker-ce dependency packages
+- name: 1.install docker-ce dependency packages
+  yum:
+    name: '{{ docker_ce_dependency_packages }}'
+    state: installed
+
+#2.add docker-ce repo
+- name: 2.add docker-ce repo
+  shell: yum-config-manager --add-repo '{{ docker_ce_repo }}'
+
+#3.install docker-ce
+- name: 3.install docker-ce '{{ docker_ce_version }}'
+  yum:
+    name: '{{ docker_ce_version }}'
+    state: installed
+
+#4.create /etc/docker dir
+- name: 4.create /etc/docker dir
+  file:
+    path: /etc/docker
+    state: directory
+
+#5.start docker service
+- name: 5.start docker service
+  service:
+    name: docker
+    state: started
+    enabled: yes
+
+#6.add daemon.json
+- name: 6.add daemon.json
+  template:
+    src: deamon.json.j2
+    dest: /etc/docker/daemon.json
+  notify: restart docker

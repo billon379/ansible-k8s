@@ -1,0 +1,42 @@
+---
+#this playbook will install kubernetes master images on centos7
+#1.copy k8s_master_images.sh to /var/tmp/k8s_master_images.sh
+- name: 1.copy k8s_master_images.sh to /var/tmp/k8s_master_images.sh
+  template:
+    src: k8s_master_images.sh.j2
+    dest: /var/tmp/k8s_master_images.sh
+    mode: u+x,g+x,o+x
+
+#2.download kubernetes master images
+- name: 2.download kubernetes master images
+  shell: /var/tmp/k8s_master_images.sh
+
+#3.kubeadm init
+- name: 3.kubeadm init
+  shell: "kubeadm init --kubernetes-version='{{ kubernetes_version }}' --pod-network-cidr='{{ pod_network_cidr }}'"
+
+#4.create $HOME/.kube dir
+- name: 4.create $HOME/.kube dir
+  file:
+    path: $HOME/.kube
+    state: directory
+
+#5.kube config
+- name: 5.kube config
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: $HOME/.kube/config
+    remote_src: yes
+
+#6.chmod $HOME/.kube/config
+- name: 6.chmod $HOME/.kube/config
+  shell: chown $(id -u):$(id -g) $HOME/.kube/config
+
+#7.install network plugin
+- name: 7.install network plugin
+  shell: kubectl apply -f '{{ network_plugin }}'
+
+#8.create token
+- name: 8.create token
+  shell: kubeadm token create --print-join-command
+  register: cluster_join_command

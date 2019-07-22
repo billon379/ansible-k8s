@@ -1,0 +1,29 @@
+---
+# This playbook deploys the k8s cluster
+#1.install k8s-common,docker on all nodes
+- name: 1.install k8s-common,docker on all nodes
+  hosts: k8s_master,k8s_node
+  remote_user: root
+  roles:
+    - k8s-common
+    - docker
+  tags:
+    - k8s-common
+
+#2.install k8s-master on master
+- name: 2.install k8s-master on master
+  hosts: k8s_master
+  remote_user: root
+  roles:
+    - k8s-master
+  tags:
+    - k8s-master
+
+#3.install k8s-node on node
+- name: 3.install k8s-node on node
+  hosts: k8s_node
+  remote_user: root
+  roles:
+    - k8s-node
+  tags:
+    - k8s-node
