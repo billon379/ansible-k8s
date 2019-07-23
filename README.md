@@ -1,6 +1,6 @@
-#使用kubeadm搭建k8s集群
+# 使用kubeadm搭建k8s集群
 
-##一、集群配置信息
+## 一、集群配置信息
 | 操作系统      |  主机名      | IP               | 组件                                                          |
 | :---        | :---        | :---             | :---                                                          |
 | CentOS 7.6  | k8s_master  | 192.168.217.129  | etcd、kube-apiserver、kube-controller-manager、kube-scheduler  |
@@ -8,34 +8,34 @@
 | CentOS 7.6  | k8s_node02  | 192.168.217.137  | kubelet、kube-proxy                                           |
 ----------------------------------------------------------------------------------------------------------------
 
-##二、全局操作（所有节点执行）
-###1、安装ntp服务
+## 二、全局操作（所有节点执行）
+### 1、安装ntp服务
 ```
 # yum -y install ntpdate
 # ntpdate cn.pool.ntp.org
 ```
-###2、关闭firewalld
+### 2、关闭firewalld
 Kubernetes的master（管理主机）与node（工作节点）之间会有大量的网络通信，安全的做法是在防火墙上配置各组件需要相互通信的端口号。
 在一个安全的内部网络环境中建议关闭防火墙服务，这里我们关闭防火墙来部署测试环境。
 ```
 # systemctl disable firewalld
 # systemctl stop firewalld
 ```
-###3、关闭SELinux
+### 3、关闭SELinux
 禁用SELinux的目的是让容器可以读取主机文件系统。
 ```
 # sed -i "s/SELINUX=enforcing/SELINUX=disabled/g" /etc/selinux/config
 # sed -i 's/SELINUXTYPE=targeted/#&/' /etc/selinux/config
 # setenforce 0
 ```
-###4、关闭swap
+### 4、关闭swap
 当前的Qos策略都是假定主机不启用内存Swap。如果主机启用了Swap，那么Qos策略可能会失效。
 例如：两个Pod都刚好达到了内存Limits，由于内存Swap机制，它们还可以继续申请使用更多的内存。 
 如果Swap空间不足，那么最终这两个Pod中的进程可能会被“杀掉”。目前Kubernetes和Docker尚不支持内存Swap空间的隔离机制。
 ```
 # swapoff -a && sed -i "s/\/dev\/mapper\/centos-swap/\#\/dev\/mapper\/centos-swap/g" /etc/fstab
 ```
-###5、防止iptables被绕过
+### 5、防止iptables被绕过
 ```
 # modprobe br_netfilter
 # cat <<EOF >  /etc/sysctl.d/k8s.conf
@@ -45,16 +45,16 @@ EOF
 # sysctl --system
 ```
 
-##三、安装docker-ce（所有节点执行）
-###1、安装所需的软件包
+## 三、安装docker-ce（所有节点执行）
+### 1、安装所需的软件包
 ```
 # yum install -y yum-utils device-mapper-persistent-data lvm2
 ```
-###2、设置稳定的库
+### 2、设置稳定的库
 ```
 # yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
 ```
-###3、通过yum安装docker-ce
+### 3、通过yum安装docker-ce
 1.安装最新版本的docker-ce（*如果需要安装特定的版本跳过此步骤，参考步骤2*）
 ```
 # yum install -y docker-ce
@@ -65,15 +65,15 @@ EOF
 # yum install docker-ce-18.09.7-3.el7
 ```
 注:版本号格式为docker-ce-详细版本号，如：docker-ce-17.06.2.ce-1.el7.centos
-###4、启动docker
+### 4、启动docker
 ```
 # systemctl start docker
 ```
-###5、将服务加入到启动项
+### 5、将服务加入到启动项
 ```
 chkconfig docker on
 ```
-###6、修改docker参数
+### 6、修改docker参数
 ```
 # tee /etc/docker/daemon.json <<-'EOF'
 {
@@ -85,8 +85,8 @@ EOF
 # systemctl restart docker
 ```
 
-##四、安装kubernetes初始化工具（所有节点执行）
-###1、使用阿里云的kubernetes源
+## 四、安装kubernetes初始化工具（所有节点执行）
+### 1、使用阿里云的kubernetes源
 ```
 # cat <<EOF > /etc/yum.repos.d/kubernetes.repo
 [kubernetes]
@@ -98,17 +98,17 @@ repo_gpgcheck=1
 gpgkey=https://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg https://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg
 EOF
 ```
-###2、安装工具
+### 2、安装工具
 ```
 # yum install -y kubelet kubeadm kubectl
 ```
-###3、启动kubelet
+### 3、启动kubelet
 ```
 # systemctl enable kubelet && systemctl start kubelet
 ```
 
-##五、集群初始化（master节点执行）
-###1、查看集群初始化所需镜像及对应依赖版本号
+## 五、集群初始化（master节点执行）
+### 1、查看集群初始化所需镜像及对应依赖版本号
 ```
 # kubeadm config images list
 k8s.gcr.io/kube-apiserver:v1.15.0
@@ -119,7 +119,7 @@ k8s.gcr.io/pause:3.1
 k8s.gcr.io/etcd:3.3.10
 k8s.gcr.io/coredns:1.3.1
 ```
-###2、因为这些重要镜像都被墙了，所以要预先单独下载好，然后才能初始化集群。脚本如下：
+### 2、因为这些重要镜像都被墙了，所以要预先单独下载好，然后才能初始化集群。脚本如下：
 ```
 #!/bin/bash
 
@@ -147,7 +147,7 @@ for imageName in ${images[@]} ; do
   docker rmi $ALIYUN_URL/$imageName
 done
 ```
-###3、初始化集群
+### 3、初始化集群
 ```
 # kubeadm init --kubernetes-version=v1.15.0 --pod-network-cidr=192.168.0.0/16
 ```
@@ -240,7 +240,7 @@ kube-scheduler-localhost            1/1     Running   0          5h19m   192.168
 ```
 到这里，会发现除了coredns未ready，这是正常的，因为还没有网络插件，接下来安装calico后就变为正常running了。
 
-##六、安装calico（master节点执行）
+## 六、安装calico（master节点执行）
 ```
 # kubectl apply -f https://docs.projectcalico.org/v3.7/manifests/calico.yaml
 ```
@@ -264,8 +264,8 @@ NAME        STATUS   ROLES    AGE     VERSION   INTERNAL-IP       EXTERNAL-IP   
 localhost   Ready    master   6h14m   v1.15.0   192.168.217.129   <none>        CentOS Linux 7 (Core)   3.10.0-957.el7.x86_64   docker://18.9.7
 ```
 
-##七、加入集群（工作节点执行）
-###1、先在需要加入集群的节点上下载必要镜像，下载脚本如下：
+## 七、加入集群（工作节点执行）
+### 1、先在需要加入集群的节点上下载必要镜像，下载脚本如下：
 ```
 #!/bin/bash
 
@@ -286,7 +286,7 @@ for imageName in ${images[@]} ; do
   docker rmi $ALIYUN_URL/$imageName
 done
 ```
-###2、然后在主节点初始化输出中获取加入集群的命令，复制到工作节点执行即可：
+### 2、然后在主节点初始化输出中获取加入集群的命令，复制到工作节点执行即可：
 ```
 [root@localhost ~]# kubeadm join 192.168.217.129:6443 --token 8pxu6r.zs445r86lm26icgn --discovery-token-ca-cert-hash sha256:9bd837fdc8bbac09dd0de9415dcef20fd36e60ed8efb94928a83232070306754
 [preflight] Running pre-flight checks
@@ -305,8 +305,8 @@ This node has joined the cluster:
 Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
 ```
 
-##八、使用ansible脚本执行上述操作
-###1、文件结构说明
+## 八、使用ansible脚本执行上述操作
+### 1、文件结构说明
 ```
 ansible-k8s/
 ├── roles  #将执行流程分为多个role，分别完成相应功能
@@ -346,7 +346,7 @@ ansible-k8s/
 ├── inventory  #主机清单
 └── test.yml  #测试用的playbook
 ```
-###2、inventory文件内容如下
+### 2、inventory文件内容如下
 ```
 #k8s_master节点
 [k8s_master]
@@ -356,7 +356,7 @@ ansible-k8s/
 [k8s_node]
 192.168.217.137
 ```
-###3、test.yml内容如下
+### 3、test.yml内容如下
 ```
 #This playbook deploys the k8s cluster
 #1.install k8s-common,docker on all nodes
@@ -387,11 +387,11 @@ ansible-k8s/
   tags:
     - k8s-node
 ```
-###4、执行ansible脚本
+### 4、执行ansible脚本
 ```
 [root@localhost ansible-k8s]# ansible-playbook test.yml
 ```
-###5、执行部分tag
+### 5、执行部分tag
 ```
 [root@localhost ansible-k8s]# ansible-playbook test.yml --tags "k8s-common"
 ```
