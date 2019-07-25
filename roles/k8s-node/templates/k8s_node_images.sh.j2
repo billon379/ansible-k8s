@@ -4,12 +4,14 @@ set -e
 
 KUBE_VERSION={{ kubernetes_version }}
 KUBE_PAUSE_VERSION={{ kubernetes_pause_version }}
+CORE_DNS_VERSION={{ core_dns_version }}
 
 GCR_URL=k8s.gcr.io
 ALIYUN_URL=registry.cn-hangzhou.aliyuncs.com/google_containers
 
-images=(kube-proxy-amd64:${KUBE_VERSION}
-pause:${KUBE_PAUSE_VERSION})
+images=(kube-proxy:${KUBE_VERSION}
+pause:${KUBE_PAUSE_VERSION}
+coredns:${CORE_DNS_VERSION})
 
 for imageName in ${images[@]} ; do
   docker pull $ALIYUN_URL/$imageName
