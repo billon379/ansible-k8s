@@ -10,56 +10,57 @@
 - name: 2.use ntpdate
   shell: ntpdate cn.pool.ntp.org
 
-#3.check if firewall service exists
-- name: 3.check if firewall service exists
-  shell: "if chkconfig --list | grep -q firewall; then echo true; else echo false; fi;"
-  register: firewall_service_exists
-
-#4.close firewall when firewall service exists
-- name: 4.close firewall when firewall service exists
-  when: '{{ firewall_service_exists.stdout }}'
+#3.close firewall
+- name: 3.close firewall
   service:
-    name: firewall
+    name: firewalld
     state: stopped
     enabled: no
 
-#5.close SELinux
-- name: 5.close SELinux
+#4.close SELinux
+- name: 4.close SELinux
   selinux:
     state: disabled
 
-#6.close swap
-- name: 6.close swap
+#5.close swap
+- name: 5.close swap
   shell: swapoff -a && sed -i "s/\/dev\/mapper\/centos-swap/\#\/dev\/mapper\/centos-swap/g" /etc/fstab
 
-#7.add br_netfilter module
-- name: 7.add br_netfilter module
+#6.add br_netfilter module
+- name: 6.add br_netfilter module
   modprobe:
     name: br_netfilter
     state: present
 
-#8.sysctl net.bridge.bridge-nf-call-ip6tables=1
-- name: 8.sysctl net.bridge.bridge-nf-call-ip6tables=1
+#7.sysctl net.bridge.bridge-nf-call-ip6tables=1
+- name: 7.sysctl net.bridge.bridge-nf-call-ip6tables=1
   sysctl:
     name: net.bridge.bridge-nf-call-ip6tables
     value: 1
     sysctl_set: yes
 
-#9.sysctl net.bridge.bridge-nf-call-iptables=1
-- name: 9.sysctl net.bridge.bridge-nf-call-iptables=1
+#8.sysctl net.bridge.bridge-nf-call-iptables=1
+- name: 8.sysctl net.bridge.bridge-nf-call-iptables=1
   sysctl:
     name: net.bridge.bridge-nf-call-iptables
     value: 1
     sysctl_set: yes
 
-#10.add aliyun kubernetes repo
-- name: 10.add aliyun kubernetes repo
+#9.add aliyun kubernetes repo
+- name: 9.add aliyun kubernetes repo
   template:
     src: kubernetes.repo.j2
     dest: /etc/yum.repos.d/kubernetes.repo
 
-#11.install kubernetes dependency packages
-- name: 11.install kubernetes dependency packages
+#10.install kubernetes dependency packages
+- name: 10.install kubernetes dependency packages
   yum:
     name: '{{ kubernetes_dependency_packages }}'
     state: installed
+
+#11.start kubelet
+- name: 11.start kubelet
+  service:
+    name: kubelet
+    state: started
+    enabled: yes
